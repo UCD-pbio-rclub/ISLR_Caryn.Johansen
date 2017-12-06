@@ -1,0 +1,262 @@
+---
+title: "Chapter 3"
+author: "Caryn Johansen"
+date: "12/5/2017"
+output: html_document
+---
+
+```{r}
+library(ISLR)
+library(arm)
+library(tidyverse)
+```
+
+
+##8. 
+
+This question involves the use of simple linear regression on the Auto
+data set.
+
+(a) Use the lm() function to perform a simple linear regression with
+mpg as the response and horsepower as the predictor. Use the
+summary() function to print the results. Comment on the output.
+For example:
+
+* Is there a relationship between the predictor and the response?
+* How strong is the relationship between the predictor and
+the response?
+* Is the relationship between the predictor and the response
+positive or negative?
+* What is the predicted mpg associated with a horsepower of
+98? What are the associated 95% confidence and prediction
+intervals?
+
+```{r}
+data(Auto)
+head(Auto)
+```
+
+```{r}
+Auto %>% ggplot() + geom_point(aes(x=horsepower, y=mpg))
+Auto %>% ggplot() + geom_point(aes(x=horsepower, y=mpg)) + 
+  facet_grid(.~year)
+```
+
+Looks like year also has an effect - keep in mind for improving the model in the future.
+
+```{r results='hold'}
+fit1 <-lm(mpg ~ horsepower, data=Auto)
+display(fit1)
+cat("----------\n")
+summary(fit1)
+cat("----------\n")
+summary(fit1)$sigma
+cat("----------\n")
+coef(fit1)
+```
+
+The summaries of this fit indicate that there is an overall mean mpg of 39.9, and horsepower has a -0.15 effect on the mpg. (Increase horsepower by 1, decrease mpg by 0.15).
+
+
+(b) Plot the response and the predictor. Use the abline() function
+to display the least squares regression line.
+
+```{r results='hold'}
+Auto %>% ggplot() + geom_point(aes(x=horsepower, y=mpg)) +
+  geom_abline(intercept = coef(fit1)[1], slope = coef(fit1)[2]) + 
+  ylim(0, 45)
+Auto %>% ggplot(aes(x=horsepower, y=mpg)) + geom_point() + geom_smooth(method="lm")
+```
+
+
+(c) Use the plot() function to produce diagnostic plots of the least
+squares regression fit. Comment on any problems you see with
+the fit.
+
+```{r}
+plot(fit1)
+```
+
+In the residual plot, small and large effect have residuals that deviate from the null residual of 0, indicating non-linearity (which we can see when we plot).
+Here, the Q-Q plot seems to indicate that the model has trouble with fitting the upper quantile of the data.
+Some data points have a higher leverage compared to a majority of the data - but nothing is too far out of the model for concern.
+Also - the range of leverage here is very small. Does that matter? As opposed to the examples in the book, which range up to 3.
+
+##13. 
+
+In this exercise you will create some simulated data and will fit simple
+linear regression models to it. Make sure to use set.seed(1) prior to
+starting part (a) to ensure consistent results.
+
+(a) Using the rnorm() function, create a vector, x, containing 100
+observations drawn from a N(0, 1) distribution. This represents
+a feature, X.
+
+```{r}
+set.seed(1)
+x <- rnorm(1:100, mean=0, sd=1)
+```
+
+
+(b) Using the rnorm() function, create a vector, eps, containing 100
+observations drawn from a N(0, 0.25) distribution i.e. a normal
+distribution with mean zero and variance 0.25.
+
+```{r}
+eps <- rnorm(1:100, mean=0, sd=0.25)
+```
+
+
+(c) Using x and eps, generate a vector y according to the model
+$$Y = −1 + 0.5X + \epsilon  \space (3.39)$$
+
+What is the length of the vector y? What are the values of β0
+and β1 in this linear model?
+
+```{r}
+y <- -1 + 0.5*x + eps
+length(y)
+```
+
+Here, $\beta_0$ is -1, and $\beta_1$ is 0.5
+
+(d) Create a scatterplot displaying the relationship between x and
+y. Comment on what you observe.
+
+```{r}
+plot(x,y)
+abline(a = -1, b = 0.5)
+```
+
+
+(e) Fit a least squares linear model to predict y using x. Comment
+on the model obtained. How do ˆ β0 and ˆ β1 compare to β0 and
+β1?
+
+```{r}
+fit13e <- lm(y~x)
+display(fit13e)
+```
+
+In this linear model, the intercept is -1.02 and the coefficient for x (slope) is 0.52.
+This is pretty close to the supplied model.
+
+(f) Display the least squares line on the scatterplot obtained in (d).
+Draw the population regression line on the plot, in a different
+color. Use the legend() command to create an appropriate legend.
+
+```{r results='hold'}
+df <- data.frame(x=x, y=y)
+df %>% ggplot(aes(x, y)) + geom_point() +
+  geom_abline(intercept = coef(fit13e)[1], slope=coef(fit13e)[2]) +
+  geom_abline(intercept = -1, slope = 0.5, color="red")
+```
+
+
+(g) Now fit a polynomial regression model that predicts y using x
+and x2. Is there evidence that the quadratic term improves the
+model fit? Explain your answer.
+
+(h) Repeat (a)–(f) after modifying the data generation process in
+such a way that there is less noise in the data. The model (3.39)
+should remain the same. You can do this by decreasing the variance
+of the normal distribution used to generate the error term
+$\epsilon$ in (b). Describe your results.
+
+```{r results='hold'}
+eps_h <- rnorm(1:100, mean=0, sd=1e-2)
+y <- -1 + 0.5*x + eps_h
+fit13h <- lm(y~x)
+summary(fit13h)
+```
+
+```{r results='hold'}
+df <- data.frame(x=x, y=y)
+df %>% ggplot(aes(x,y)) + geom_point() +
+  geom_abline(intercept = coef(fit13h)[1], slope = coef(fit13h)[2])
+```
+
+Small error means that my model explains almost everything, if not everything.
+
+(i) Repeat (a)–(f) after modifying the data generation process in
+such a way that there is more noise in the data. The model
+(3.39) should remain the same. You can do this by increasing
+the variance of the normal distribution used to generate the
+error term $\epsilon$ in (b). Describe your results.
+
+```{r results='hold'}
+eps_i <- rnorm(1:100, mean=0, sd=10)
+y <- -1 + 0.5*x + eps_i
+fit13i <- lm(y~x)
+summary(fit13i)
+```
+
+```{r results='hold'}
+df <- data.frame(x=x, y=y)
+df %>% ggplot(aes(x,y)) + geom_point() +
+  geom_abline(intercept = coef(fit13h)[1], slope = coef(fit13h)[2])
+```
+
+Large error means my model explains almost nothing.
+
+(j) What are the confidence intervals for β0 and β1 based on the
+original data set, the noisier data set, and the less noisy data
+set? Comment on your results.
+
+```{r results='hold'}
+confint(fit13e)
+confint(fit13h)
+confint(fit13i)
+```
+
+
+## 15
+This problem involves the Boston data set, which we saw in the lab
+for this chapter. We will now try to predict per capita crime rate
+using the other variables in this data set. In other words, per capita
+crime rate is the response, and the other variables are the predictors.
+
+(a) For each predictor, fit a simple linear regression model to predict
+the response. Describe your results. In which of the models is
+there a statistically significant association between the predictor
+and the response? Create some plots to back up your assertions.
+
+```{r results='hold'}
+data("Boston")
+names(Boston)
+cat("-----------\n")
+summary(fit_zn <- lm(crim ~ zn, data=Boston))
+cat("-----------\n")
+summary(fit_zn <- lm(crim ~ indus, data=Boston))
+cat("-----------\n")
+summary(fit_zn <- lm(crim ~ chas, data=Boston))
+cat("-----------\n")
+summary(fit_zn <- lm(crim ~ nox, data=Boston))
+cat("-----------\n")
+summary(fit_zn <- lm(crim ~ rm, data=Boston))
+cat("-----------\n")
+summary(fit_zn <- lm(crim ~ age, data=Boston))
+cat("-----------\n")
+summary(fit_zn <- lm(crim ~ dis, data=Boston))
+cat("-----------\n")
+summary(fit_zn <- lm(crim ~ rad, data=Boston))
+cat("-----------\n")
+summary(fit_zn <- lm(crim ~ tax, data=Boston))
+cat("-----------\n")
+summary(fit_zn <- lm(crim ~ ptratio, data=Boston))
+cat("-----------\n")
+summary(fit_zn <- lm(crim ~ black, data=Boston))
+cat("-----------\n")
+summary(fit_zn <- lm(crim ~ lstat, data=Boston))
+```
+
+
+(b) Fit a multiple regression model to predict the response using
+all of the predictors. Describe your results. For which predictors
+can we reject the null hypothesis H0 : βj = 0?
+
+```{r}
+mult_fit <- lm(crim~., data=Boston)
+summary(mult_fit)
+```
+
